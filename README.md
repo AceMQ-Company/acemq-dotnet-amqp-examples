@@ -50,12 +50,14 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ dotnet run --project basic/01-publish
 |---|---|---|
 | A durable queue, a confirmed publish, and a consumer that says what it did | [01](basic/01-publish-and-consume-csharp) | [01](basic/01-publish-and-consume-vbnet) |
 | The attempt counter moving, and a message giving up | [02](basic/02-retries-and-dead-letters-csharp) | [02](basic/02-retries-and-dead-letters-vbnet) |
+| One logical message delivered four times and charged once | [03](basic/03-idempotent-consumer-csharp) | [03](basic/03-idempotent-consumer-vbnet) |
 
 ### intermediate
 
 | | C# | VB.NET |
 |---|---|---|
 | A tenant stamped on every message and every handler timed, without either appearing in the handler | [01](intermediate/01-interceptors-csharp) | [01](intermediate/01-interceptors-vbnet) |
+| A topology described once, dry-run so it can be read, then applied | [02](intermediate/02-topology-as-data-csharp) | [02](intermediate/02-topology-as-data-vbnet) |
 
 ### advanced
 
@@ -90,8 +92,9 @@ limit built on it would never trip.
 
 **VB.NET is case-insensitive.** A variable named `keyring` collides with the
 `Keyring` type, and the compiler reports it as a type it cannot infer rather
-than as a name clash. The encryption example calls it `ring` for that reason —
-the sort of thing that costs twenty minutes if nobody has written it down.
+than as a name clash. The encryption example calls it `ring` and the topology
+example calls its variable `wanted` for the same reason — the sort of thing that
+costs twenty minutes if nobody has written it down.
 
 ## Requirements
 

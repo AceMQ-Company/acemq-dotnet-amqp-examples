@@ -10,7 +10,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
-    <AceMqVersion>0.1.7</AceMqVersion>
+    <AceMqVersion>0.1.8</AceMqVersion>
     <!-- An example that warns is an example somebody copies warnings from. -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <!--

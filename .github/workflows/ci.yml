@@ -86,10 +86,12 @@ jobs:
               failed="$failed $project"
             fi
             echo "::endgroup::"
-            # Each example declares its own queues, and two examples declaring
-            # the same queue with different settings is a PRECONDITION_FAILED
-            # rather than a bug — so each gets a broker in the state the last
-            # one left it, exactly as a developer running them in order would.
+            # Each example uses queue names of its own. They share one broker
+            # here, and two examples declaring the same queue with different
+            # settings is a PRECONDITION_FAILED — the library refusing to let a
+            # service and its broker disagree. That is correct behaviour and an
+            # example design error, and it happened: the encrypting example and
+            # the retry example both used "payments".
           done
           if [ -n "$failed" ]; then
             echo "::error::these examples failed:$failed"

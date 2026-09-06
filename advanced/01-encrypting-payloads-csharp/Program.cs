@@ -62,19 +62,19 @@ public static class Program
             codec,
             cancellation.Token);
 
-        await mq.DeclareQueueAsync("payments");
+        await mq.DeclareQueueAsync("card-payments");
 
         var arrived = new TaskCompletionSource<IMessage<CardPayment>>(
             TaskCreationOptions.RunContinuationsAsynchronously);
 
-        using var consumer = await mq.ConsumeAsync<CardPayment>("payments", message =>
+        using var consumer = await mq.ConsumeAsync<CardPayment>("card-payments", message =>
         {
             arrived.TrySetResult(message);
             return Task.FromResult(Ack.Accept());
         });
 
         var payment = new CardPayment { PaymentId = "p-1", Pan = "4111111111111111" };
-        await mq.Publisher<CardPayment>("", "payments").SendAsync(payment);
+        await mq.Publisher<CardPayment>("", "card-payments").SendAsync(payment);
 
         var received = await arrived.Task.WaitAsync(cancellation.Token);
         Console.WriteLine($"the consumer read {received.Payload.PaymentId} / {received.Payload.Pan}");

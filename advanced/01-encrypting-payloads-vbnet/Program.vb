@@ -61,20 +61,20 @@ Module Program
                 cancellation.Token)
 
             Try
-                Await mq.DeclareQueueAsync("payments")
+                Await mq.DeclareQueueAsync("card-payments")
 
                 Dim arrived As New TaskCompletionSource(Of IMessage(Of CardPayment))(
                     TaskCreationOptions.RunContinuationsAsynchronously)
 
                 Using consumer = Await mq.ConsumeAsync(Of CardPayment)(
-                    "payments",
+                    "card-payments",
                     Function(message)
                         arrived.TrySetResult(message)
                         Return Task.FromResult(Ack.Accept())
                     End Function)
 
                     Dim payment As New CardPayment With {.PaymentId = "p-1", .Pan = "4111111111111111"}
-                    Await mq.Publisher(Of CardPayment)("", "payments").SendAsync(payment)
+                    Await mq.Publisher(Of CardPayment)("", "card-payments").SendAsync(payment)
 
                     Dim received = Await arrived.Task.WaitAsync(cancellation.Token)
                     Console.WriteLine($"the consumer read {received.Payload.PaymentId} / {received.Payload.Pan}")

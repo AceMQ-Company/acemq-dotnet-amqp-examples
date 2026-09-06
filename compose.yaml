@@ -1,0 +1,13 @@
+# A broker for the examples. Plain AMQP on 5672; the TLS example brings its own.
+services:
+  broker:
+    image: rabbitmq:4-alpine
+    environment:
+      # RabbitMQ writes its Erlang cookie under HOME, and the default in this
+      # image is not writable on every Docker setup. Pointing it at /tmp is the
+      # difference between a broker that starts and one that dies with an
+      # "eacces" nobody can interpret.
+      HOME: /tmp
+    ports:
+      - "5672:5672"
+      - "15672:15672"

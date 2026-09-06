@@ -1,0 +1,114 @@
+# Every example is compiled and run against a real broker on every push.
+#
+# This is the whole reason the repository can be trusted. Examples rot: the
+# library moves on, the example does not, and a newcomer's first experience is a
+# build error. Running them here turns that into a red build instead.
+#
+# Both languages are run, not only C#. The library is one assembly and VB.NET
+# calls it the same way, but "should work" and "does work" are different
+# claims, and only one of them is worth putting in a README.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # The library can change without this repository changing at all, so the
+  # examples are also run on a schedule. A weekly failure here is how we find
+  # out that a released version broke something the documentation still claims.
+  schedule:
+    - cron: '41 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  examples:
+    name: run the examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          # The framework the examples target. Installing it here rather than
+          # relying on RollForward means CI runs what the examples say they run
+          # on.
+          dotnet-version: '8.0.x'
+
+      - name: Build every example
+        run: |
+          failed=""
+          for project in $(find basic intermediate advanced \
+                             \( -name '*.csproj' -o -name '*.vbproj' \) | sort); do
+            echo "::group::build $project"
+            if ! dotnet build "$project" --nologo; then
+              failed="$failed $project"
+            fi
+            echo "::endgroup::"
+          done
+          if [ -n "$failed" ]; then
+            echo "::error::these examples did not build:$failed"
+            exit 1
+          fi
+
+      - name: Start a broker
+        run: |
+          docker run -d --name broker \
+            -e HOME=/tmp \
+            -p 5672:5672 \
+            rabbitmq:4-alpine
+          # The broker's own word for it, from this boot. A TCP connect is not
+          # enough: Docker publishes the port before RabbitMQ is listening, and
+          # a connection then succeeds and is immediately reset.
+          started=$(date -u +%Y-%m-%dT%H:%M:%S)
+          for i in $(seq 1 60); do
+            if docker logs --since "$started" broker 2>&1 | grep -q "Server startup complete"; then
+              echo "the broker is up"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::the broker never became ready"
+          docker logs broker
+          exit 1
+
+      - name: Run every example
+        env:
+          ACEMQ_URL: amqp://guest:guest@localhost:5672/
+        run: |
+          failed=""
+          for project in $(find basic intermediate advanced \
+                             \( -name '*.csproj' -o -name '*.vbproj' \) | sort); do
+            echo "::group::run $project"
+            if ! dotnet run --project "$project" --no-build; then
+              failed="$failed $project"
+            fi
+            echo "::endgroup::"
+            # Each example declares its own queues, and two examples declaring
+            # the same queue with different settings is a PRECONDITION_FAILED
+            # rather than a bug — so each gets a broker in the state the last
+            # one left it, exactly as a developer running them in order would.
+          done
+          if [ -n "$failed" ]; then
+            echo "::error::these examples failed:$failed"
+            exit 1
+          fi
+
+      - name: Check both languages actually ran
+        # A find that matched nothing would make the steps above pass having run
+        # nothing at all, and a repository that claims VB.NET support should
+        # fail when the VB examples stop being run.
+        run: |
+          cs=$(find basic intermediate advanced -name '*.csproj' | wc -l | tr -d ' ')
+          vb=$(find basic intermediate advanced -name '*.vbproj' | wc -l | tr -d ' ')
+          echo "$cs C# examples, $vb VB.NET examples"
+          if [ "$cs" -lt 2 ] || [ "$vb" -lt 2 ]; then
+            echo "::error::expected at least two examples in each language"
+            exit 1
+          fi
+
+      - name: What the broker said, if anything went wrong
+        if: failure()
+        run: docker logs broker

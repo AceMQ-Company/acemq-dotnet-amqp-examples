@@ -51,6 +51,7 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ dotnet run --project basic/01-publish
 | A durable queue, a confirmed publish, and a consumer that says what it did | [01](basic/01-publish-and-consume-csharp) | [01](basic/01-publish-and-consume-vbnet) |
 | The attempt counter moving, and a message giving up | [02](basic/02-retries-and-dead-letters-csharp) | [02](basic/02-retries-and-dead-letters-vbnet) |
 | One logical message delivered four times and charged once | [03](basic/03-idempotent-consumer-csharp) | [03](basic/03-idempotent-consumer-vbnet) |
+| Dead-lettered messages put back, one tenant at a time | [04](basic/04-replay-csharp) | [04](basic/04-replay-vbnet) |
 
 ### intermediate
 

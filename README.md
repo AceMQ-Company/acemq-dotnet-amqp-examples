@@ -51,7 +51,23 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ dotnet run --project basic/01-publish
 | A durable queue, a confirmed publish, and a consumer that says what it did | [01](basic/01-publish-and-consume-csharp) | [01](basic/01-publish-and-consume-vbnet) |
 | The attempt counter moving, and a message giving up | [02](basic/02-retries-and-dead-letters-csharp) | [02](basic/02-retries-and-dead-letters-vbnet) |
 
-## Two things these examples exist to show
+### intermediate
+
+| | C# | VB.NET |
+|---|---|---|
+| A tenant stamped on every message and every handler timed, without either appearing in the handler | [01](intermediate/01-interceptors-csharp) | [01](intermediate/01-interceptors-vbnet) |
+
+### advanced
+
+| | C# | VB.NET |
+|---|---|---|
+| Message bodies the broker cannot read, and a keyring that can rotate | [01](advanced/01-encrypting-payloads-csharp) | [01](advanced/01-encrypting-payloads-vbnet) |
+
+More are being added. The [Java examples](https://github.com/AceMQ-Company/acemq-java-amqp-examples)
+are further along and cover the same library, so the shape of anything missing
+here can be read there in the meantime.
+
+## Three things these examples exist to show
 
 **The transport has to be registered.**
 
@@ -71,6 +87,11 @@ original bytes — so that header reads 1 for ever, however many times the messa
 has come back. The count the consumer keeps is the one that moves. Example 02
 prints `[1, 2, 3]`; reading the envelope would print `[1, 1, 1]` and a retry
 limit built on it would never trip.
+
+**VB.NET is case-insensitive.** A variable named `keyring` collides with the
+`Keyring` type, and the compiler reports it as a type it cannot infer rather
+than as a name clash. The encryption example calls it `ring` for that reason —
+the sort of thing that costs twenty minutes if nobody has written it down.
 
 ## Requirements
 

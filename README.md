@@ -52,6 +52,8 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ dotnet run --project basic/01-publish
 | The attempt counter moving, and a message giving up | [02](basic/02-retries-and-dead-letters-csharp) | [02](basic/02-retries-and-dead-letters-vbnet) |
 | One logical message delivered four times and charged once | [03](basic/03-idempotent-consumer-csharp) | [03](basic/03-idempotent-consumer-vbnet) |
 | Dead-lettered messages put back, one tenant at a time | [04](basic/04-replay-csharp) | [04](basic/04-replay-vbnet) |
+| A message written in the same transaction as the work, and a relay publishing it after | [05](basic/05-transactional-outbox-csharp) | [05](basic/05-transactional-outbox-vbnet) |
+| JSON and XML read off one queue, which is what a format migration looks like | [06](basic/06-serialization-csharp) | [06](basic/06-serialization-vbnet) |
 
 ### intermediate
 

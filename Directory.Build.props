@@ -2,15 +2,18 @@
 
   <!--
     Shared by every example, so each project file says only what makes that
-    example different. The version is here rather than in eight csproj files
-    because bumping it in eight places is how one gets left behind.
+    example different. The version is here rather than in a project file each
+    because bumping it in twenty-six places is how one gets left behind.
+
+    Every AceMQ package is versioned together on purpose, so one property covers
+    AceMq.Amqp, AceMq.Amqp.RabbitMq and AceMq.Amqp.Crypto alike.
   -->
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
-    <AceMqVersion>0.1.8</AceMqVersion>
+    <AceMqVersion>0.5.0</AceMqVersion>
     <!-- An example that warns is an example somebody copies warnings from. -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <!--

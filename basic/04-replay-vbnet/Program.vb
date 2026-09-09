@@ -52,12 +52,14 @@ Module Program
                     .Build())
 
             Try
-                Await mq.DeclareQueueAsync("replay-invoices-vb-dead")
+                Await mq.DeclareQueueAsync("replay-invoices-vb")
 
-                Dim deadLettering As New Dictionary(Of String, Object) From {
-                    {"x-dead-letter-exchange", ""},
-                    {"x-dead-letter-routing-key", "replay-invoices-vb-dead"}}
-                Await mq.DeclareQueueAsync("replay-invoices-vb", QueueType.Classic, deadLettering)
+                ' Where dead letters actually land. A handler that rejects a
+                ' message does not nack it and leave the route to the broker:
+                ' the library republishes it to {queue}.dlq and acknowledges the
+                ' original, so the reason travels with the message. The consumer
+                ' declares that queue when it starts, so nothing here has to.
+                Const deadLetters As String = "replay-invoices-vb.dlq"
 
                 ' ---- something breaks ----------------------------------------
                 '
@@ -92,7 +94,7 @@ Module Program
 
                 ' Named "again" rather than "replay": VB.NET is case-insensitive,
                 ' so a variable called replay collides with the Replay type.
-                Dim again = mq.Replay("replay-invoices-vb-dead").Into("replay-invoices-vb")
+                Dim again = mq.Replay(deadLetters).Into("replay-invoices-vb")
                 Console.WriteLine($"{Await again.PendingAsync()} message(s) waiting on {again.From}")
 
                 ' ---- the fix is deployed, but only for one tenant -------------
@@ -130,7 +132,7 @@ Module Program
                 ' same numbers as the first. A service would leave the queues
                 ' alone.
                 Await mq.DeleteQueueAsync("replay-invoices-vb")
-                Await mq.DeleteQueueAsync("replay-invoices-vb-dead")
+                Await mq.DeleteQueueAsync(deadLetters)
             Finally
                 mq.Dispose()
             End Try

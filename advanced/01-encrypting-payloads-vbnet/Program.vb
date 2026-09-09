@@ -25,6 +25,10 @@ Imports System.Threading
 Imports System.Threading.Tasks
 
 Imports AceMq.Amqp
+' EncryptedCodec, Keyring and EncryptionKey moved out of the main package in
+' 0.5.0. Encryption is now AceMq.Amqp.Crypto, referenced and imported on its
+' own, so a service that does not encrypt does not carry the code that does.
+Imports AceMq.Amqp.Crypto
 Imports AceMq.Amqp.RabbitMq
 
 Public Class CardPayment

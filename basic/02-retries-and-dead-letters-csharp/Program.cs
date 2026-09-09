@@ -47,11 +47,17 @@ public static class Program
         // Rejected messages go somewhere somebody can read. A dead-letter
         // queue nobody reads is a place messages go to be forgotten quietly,
         // which is worse than dropping them: it looks like nothing is wrong.
-        await mq.DeclareQueueAsync("payments-dead");
-        await mq.DeclareQueueAsync(
-            "payments", QueueType.Classic,
-            new Dictionary<string, object> { ["x-dead-letter-exchange"] = "" ,
-                                             ["x-dead-letter-routing-key"] = "payments-dead" });
+        //
+        // The name is not a choice: when a retry policy runs out of attempts
+        // the library republishes the message to {queue}.dlq and acknowledges
+        // the original, rather than nacking it and leaving the route to the
+        // broker. A consumer declares that queue when it starts, so nothing
+        // here has to. Setting x-dead-letter-exchange on the source queue is
+        // still worth doing — it is the backstop for a TTL expiry, an
+        // x-max-length drop, or a rejection from something that is not this
+        // library — but it is not where a give-up lands.
+        await mq.DeclareQueueAsync("payments");
+        const string deadLetters = "payments.dlq";
 
         var attempts = new List<int>();
         var dead = new TaskCompletionSource<IMessage<Payment>>(
@@ -80,7 +86,7 @@ public static class Program
             return Task.FromResult(Ack.Retry(TimeSpan.Zero, "the payment gateway is not answering"));
         });
 
-        using var deadConsumer = await mq.ConsumeAsync<Payment>("payments-dead", message =>
+        using var deadConsumer = await mq.ConsumeAsync<Payment>(deadLetters, message =>
         {
             dead.TrySetResult(message);
             return Task.FromResult(Ack.Accept());

@@ -44,14 +44,14 @@ public static class Program
                 .ClientName("examples/04-replay-csharp")
                 .Build());
 
-        await mq.DeclareQueueAsync("replay-invoices-dead");
-        await mq.DeclareQueueAsync(
-            "replay-invoices", QueueType.Classic,
-            new Dictionary<string, object>
-            {
-                ["x-dead-letter-exchange"] = "",
-                ["x-dead-letter-routing-key"] = "replay-invoices-dead",
-            });
+        await mq.DeclareQueueAsync("replay-invoices");
+
+        // Where dead letters actually land. A handler that rejects a message
+        // does not nack it and leave the route to the broker: the library
+        // republishes it to {queue}.dlq and acknowledges the original, so the
+        // reason travels with the message and the attempt count survives. The
+        // consumer declares that queue when it starts, so nothing here has to.
+        const string deadLetters = "replay-invoices.dlq";
 
         // ---- something breaks --------------------------------------------
         //
@@ -80,7 +80,7 @@ public static class Program
         // straight back where they came from.
         broken.Dispose();
 
-        var replay = mq.Replay("replay-invoices-dead").Into("replay-invoices");
+        var replay = mq.Replay(deadLetters).Into("replay-invoices");
         Console.WriteLine($"{await replay.PendingAsync()} message(s) waiting on {replay.From}");
 
         // ---- the fix is deployed, but only for one tenant -----------------
@@ -116,7 +116,7 @@ public static class Program
         // numbers as the first. A service would leave the queues alone.
         fixedConsumer.Dispose();
         await mq.DeleteQueueAsync("replay-invoices");
-        await mq.DeleteQueueAsync("replay-invoices-dead");
+        await mq.DeleteQueueAsync(deadLetters);
 
         return 0;
     }

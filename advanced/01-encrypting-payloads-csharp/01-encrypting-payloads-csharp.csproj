@@ -6,6 +6,12 @@
 
   <ItemGroup>
     <PackageReference Include="AceMq.Amqp" Version="$(AceMqVersion)" />
+    <!--
+      Encryption is its own package as of 0.5.0. Before that EncryptedCodec and
+      the keyring were in the main one, which every service carried whether or
+      not it encrypted anything.
+    -->
+    <PackageReference Include="AceMq.Amqp.Crypto" Version="$(AceMqVersion)" />
     <PackageReference Include="AceMq.Amqp.RabbitMq" Version="$(AceMqVersion)" />
   </ItemGroup>
 

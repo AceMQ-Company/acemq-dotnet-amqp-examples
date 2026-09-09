@@ -50,13 +50,13 @@ Module Program
                     .Build())
 
             Try
-                Await mq.DeclareQueueAsync("payments-dead")
-
-                Dim arguments As New Dictionary(Of String, Object) From {
-                    {"x-dead-letter-exchange", ""},
-                    {"x-dead-letter-routing-key", "payments-dead"}
-                }
-                Await mq.DeclareQueueAsync("payments", QueueType.Classic, arguments)
+                ' The name is not a choice: when a retry policy runs out of
+                ' attempts the library republishes the message to {queue}.dlq
+                ' and acknowledges the original, rather than nacking it and
+                ' leaving the route to the broker. A consumer declares that
+                ' queue when it starts, so nothing here has to.
+                Await mq.DeclareQueueAsync("payments")
+                Const deadLetters As String = "payments.dlq"
 
                 Dim attempts As New List(Of Integer)
                 Dim dead As New TaskCompletionSource(Of IMessage(Of Payment))(
@@ -81,7 +81,7 @@ Module Program
                     End Function)
 
                     Using deadConsumer = Await mq.ConsumeAsync(Of Payment)(
-                        "payments-dead",
+                        deadLetters,
                         Function(message)
                             dead.TrySetResult(message)
                             Return Task.FromResult(Ack.Accept())

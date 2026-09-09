@@ -54,6 +54,7 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ dotnet run --project basic/01-publish
 | Dead-lettered messages put back, one tenant at a time | [04](basic/04-replay-csharp) | [04](basic/04-replay-vbnet) |
 | A message written in the same transaction as the work, and a relay publishing it after | [05](basic/05-transactional-outbox-csharp) | [05](basic/05-transactional-outbox-vbnet) |
 | JSON and XML read off one queue, which is what a format migration looks like | [06](basic/06-serialization-csharp) | [06](basic/06-serialization-vbnet) |
+| A log four readers go through from four different places, and nothing is consumed | [07](basic/07-streams-csharp) | [07](basic/07-streams-vbnet) |
 
 ### intermediate
 
@@ -64,6 +65,9 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ dotnet run --project basic/01-publish
 | A question asked over a queue, the answer matched to it, and a question nobody answers | [03](intermediate/03-request-reply-csharp) | [03](intermediate/03-request-reply-vbnet) |
 | Three steps undone in reverse, and one that could not be undone at all | [04](intermediate/04-saga-csharp) | [04](intermediate/04-saga-vbnet) |
 | Messages delivered later, and how close to "later" they actually land | [05](intermediate/05-scheduling-csharp) | [05](intermediate/05-scheduling-vbnet) |
+| Eight consumers on one queue, and the setting that makes them behave like one | [06](intermediate/06-consumer-groups-csharp) | [06](intermediate/06-consumer-groups-vbnet) |
+| A field added to a schema, read by a consumer that has not heard of it | [07](intermediate/07-schema-evolution-csharp) | [07](intermediate/07-schema-evolution-vbnet) |
+| A message stuck three steps in, put back at step three rather than at step one | [08](intermediate/08-pipelines-csharp) | [08](intermediate/08-pipelines-vbnet) |
 
 ### advanced
 
@@ -73,7 +77,9 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ dotnet run --project basic/01-publish
 | A payload too large for a broker kept off it, and the boundary where that starts | [02](advanced/02-claim-check-csharp) | [02](advanced/02-claim-check-vbnet) |
 
 From `intermediate/03` onwards each directory carries its own `README.md`, in
-both languages, explaining what the example proves and what it costs.
+both languages, explaining what the example proves and what it costs — and so
+does `basic/07`, because a stream has more ways to go quietly wrong than the rest
+of `basic` put together.
 
 More are being added. The [Java examples](https://github.com/AceMQ-Company/acemq-java-amqp-examples)
 are further along and cover the same library, so the shape of anything missing
@@ -118,9 +124,17 @@ rejection from something that is not this library. Examples 02 and 04 read
 `Keyring` type, and the compiler reports it as a type it cannot infer rather
 than as a name clash. The encryption example calls it `ring`, the topology
 example calls its variable `wanted`, request/reply calls a `Requester` `asking`
-and an `Envelope` `stamp`, scheduling calls a `Scheduler` `later`, and the claim
-check calls its codec `framing` — all for the same reason. The sort of thing that
-costs twenty minutes if nobody has written it down.
+and an `Envelope` `stamp`, scheduling calls a `Scheduler` `later`, the claim
+check calls its codec `framing`, consumer groups call a batch `eightAtOnce`
+rather than `parallel`, and the pipeline example calls a `Pipeline(Of T)` `chain`
+— all for the same reason. The sort of thing that costs twenty minutes if nobody
+has written it down.
+
+The same rule turns namespaces into collisions. `Imports AceMq.Amqp` brings
+`AceMq.Amqp.Avro` into scope as `Avro`, so `Avro.Schema` in the schema-evolution
+example is ambiguous with Apache's `Avro` namespace and has to be imported and
+named unqualified instead. C# has the same problem; VB.NET just removes one more
+way out of it.
 
 ## Requirements
 

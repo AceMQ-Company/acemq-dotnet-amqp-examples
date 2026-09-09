@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AceMq.Amqp" Version="$(AceMqVersion)" />
+    <PackageReference Include="AceMq.Amqp.RabbitMq" Version="$(AceMqVersion)" />
+    <!--
+      Avro is its own package. It brings Apache.Avro, and Newtonsoft.Json and
+      System.CodeDom behind it, which is precisely why the core library does not
+      depend on it.
+    -->
+    <PackageReference Include="AceMq.Amqp.Avro" Version="$(AceMqVersion)" />
+  </ItemGroup>
+
+</Project>

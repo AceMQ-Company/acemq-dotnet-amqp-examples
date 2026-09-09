@@ -3,10 +3,11 @@
   <!--
     Shared by every example, so each project file says only what makes that
     example different. The version is here rather than in a project file each
-    because bumping it in twenty-six places is how one gets left behind.
+    because bumping it in thirty-four places is how one gets left behind.
 
     Every AceMQ package is versioned together on purpose, so one property covers
-    AceMq.Amqp, AceMq.Amqp.RabbitMq and AceMq.Amqp.Crypto alike.
+    AceMq.Amqp, AceMq.Amqp.RabbitMq, AceMq.Amqp.Crypto and AceMq.Amqp.Avro
+    alike.
   -->
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>

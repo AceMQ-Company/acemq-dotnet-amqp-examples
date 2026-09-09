@@ -232,18 +232,6 @@ Module Program
         If Not held Then Throw New InvalidOperationException(wrong)
     End Sub
 
-    ' The same, for something a background consumer is about to make true.
-    Private Async Function Eventually(
-            held As Func(Of Boolean), wrong As Func(Of String),
-            token As CancellationToken) As Task
-        Dim i = 0
-        While i < 100 AndAlso Not held()
-            Await Task.Delay(50, token)
-            i += 1
-        End While
-        Check(held(), wrong())
-    End Function
-
     Private Function BrokerUrl() As String
         Dim url = Environment.GetEnvironmentVariable("ACEMQ_URL")
         If String.IsNullOrEmpty(url) Then

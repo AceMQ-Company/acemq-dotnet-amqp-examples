@@ -195,17 +195,6 @@ public static class Program
         if (!held) throw new InvalidOperationException(wrong);
     }
 
-    // The same, for something a background consumer is about to make true.
-    private static async Task Eventually(
-        Func<bool> held, Func<string> wrong, CancellationToken token)
-    {
-        for (var i = 0; i < 100 && !held(); i++)
-        {
-            await Task.Delay(50, token);
-        }
-        Check(held(), wrong());
-    }
-
     private static string BrokerUrl() =>
         Environment.GetEnvironmentVariable("ACEMQ_URL") is { Length: > 0 } url
             ? url

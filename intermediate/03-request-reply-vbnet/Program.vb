@@ -104,15 +104,14 @@ Module Program
                         Check(answer.Symbol = "ACME", $"the reply was for {answer.Symbol}, not ACME")
                         Check(answer.Pence = 1234, $"the reply carried {answer.Pence}, not 1234")
 
-                        ' Responder.Answered is checked with a short wait rather
-                        ' than read straight after the reply arrives. The counter
-                        ' is incremented after the reply is published, so the
-                        ' caller can be holding its answer before the responder
-                        ' has finished counting it.
-                        Await Eventually(
-                            Function() answering.Answered = 1,
-                            Function() $"the responder answered {answering.Answered} times, not once",
-                            token)
+                        ' Read straight away, with no wait. The counter is
+                        ' incremented before the reply is published, so a caller
+                        ' holding its answer can never see a count that has not
+                        ' caught up. Writing this example is what found the bug:
+                        ' it used to be counted afterwards, and asserting it here
+                        ' failed about half the time.
+                        Check(answering.Answered = 1,
+                              $"the responder answered {answering.Answered} times, not once")
 
                         ' ---- 2. where the reply address travels -----------
                         '

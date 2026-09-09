@@ -82,11 +82,16 @@ await mq.Publisher<Quote>("", message.ReplyTo!).SendAsync(answer, envelope);
 The default exchange addresses the reply queue by name, and the request's id
 becomes the reply's correlation id. That is the whole contract.
 
-## Counters lag the answer
+## What the counters promise
 
-`Responder.Answered` is incremented **after** the reply is published, so a caller
-holding its answer can still read `0`. The example waits briefly rather than
-asserting it straight away; reading it without waiting fails about half the time.
+`Responder.Answered` is incremented **before** the reply is published, so a
+caller holding its answer can never read a count that has not caught up. The
+example asserts it straight away, with no wait.
+
+That guarantee exists because writing this example broke without it. The counter
+used to be incremented after the publish, and asserting it here failed about
+half the time — a library bug that had been living in this README as an
+explanation of why the example waited.
 
 ## How this stays honest
 

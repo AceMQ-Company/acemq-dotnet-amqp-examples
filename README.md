@@ -61,18 +61,25 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ dotnet run --project basic/01-publish
 |---|---|---|
 | A tenant stamped on every message and every handler timed, without either appearing in the handler | [01](intermediate/01-interceptors-csharp) | [01](intermediate/01-interceptors-vbnet) |
 | A topology described once, dry-run so it can be read, then applied | [02](intermediate/02-topology-as-data-csharp) | [02](intermediate/02-topology-as-data-vbnet) |
+| A question asked over a queue, the answer matched to it, and a question nobody answers | [03](intermediate/03-request-reply-csharp) | [03](intermediate/03-request-reply-vbnet) |
+| Three steps undone in reverse, and one that could not be undone at all | [04](intermediate/04-saga-csharp) | [04](intermediate/04-saga-vbnet) |
+| Messages delivered later, and how close to "later" they actually land | [05](intermediate/05-scheduling-csharp) | [05](intermediate/05-scheduling-vbnet) |
 
 ### advanced
 
 | | C# | VB.NET |
 |---|---|---|
 | Message bodies the broker cannot read, and a keyring that can rotate | [01](advanced/01-encrypting-payloads-csharp) | [01](advanced/01-encrypting-payloads-vbnet) |
+| A payload too large for a broker kept off it, and the boundary where that starts | [02](advanced/02-claim-check-csharp) | [02](advanced/02-claim-check-vbnet) |
+
+From `intermediate/03` onwards each directory carries its own `README.md`, in
+both languages, explaining what the example proves and what it costs.
 
 More are being added. The [Java examples](https://github.com/AceMQ-Company/acemq-java-amqp-examples)
 are further along and cover the same library, so the shape of anything missing
 here can be read there in the meantime.
 
-## Three things these examples exist to show
+## Four things these examples exist to show
 
 **The transport has to be registered.**
 
@@ -93,10 +100,26 @@ has come back. The count the consumer keeps is the one that moves. Example 02
 prints `[1, 2, 3]`; reading the envelope would print `[1, 1, 1]` and a retry
 limit built on it would never trip.
 
+**A dead letter goes to `{queue}.dlq`, not to the queue's `x-dead-letter-exchange`.**
+
+When a handler rejects a message, or a retry policy runs out of attempts, the
+library republishes the message to `{queue}.dlq` with the reason on the envelope
+and then acknowledges the original — rather than nacking it and leaving the
+route to the broker. That is what carries the reason and the attempt count
+across; a nack carries neither. A consumer declares `{queue}.dlq` and
+`{queue}.parked` when it starts, so nothing in an example has to.
+
+Setting `x-dead-letter-exchange` on the source queue is still worth doing, but it
+is the backstop underneath — for a TTL expiry, an `x-max-length` drop, or a
+rejection from something that is not this library. Examples 02 and 04 read
+`{queue}.dlq`, and they read the wrong queue until 0.5.0 was picked up here.
+
 **VB.NET is case-insensitive.** A variable named `keyring` collides with the
 `Keyring` type, and the compiler reports it as a type it cannot infer rather
-than as a name clash. The encryption example calls it `ring` and the topology
-example calls its variable `wanted` for the same reason — the sort of thing that
+than as a name clash. The encryption example calls it `ring`, the topology
+example calls its variable `wanted`, request/reply calls a `Requester` `asking`
+and an `Envelope` `stamp`, scheduling calls a `Scheduler` `later`, and the claim
+check calls its codec `framing` — all for the same reason. The sort of thing that
 costs twenty minutes if nobody has written it down.
 
 ## Requirements

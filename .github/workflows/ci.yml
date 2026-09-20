@@ -9,16 +9,16 @@
 # claims, and only one of them is worth putting in a README.
 name: ci
 
+# Manual only for commits. push and pull_request were removed, so nothing here
+# verifies a change unless a person asks it to; the scheduled run below is kept
+# because nobody waits on it and it catches what a commit-triggered run cannot.
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
   # The library can change without this repository changing at all, so the
   # examples are also run on a schedule. A weekly failure here is how we find
   # out that a released version broke something the documentation still claims.
   schedule:
     - cron: '41 6 * * 1'
-  workflow_dispatch:
 
 permissions:
   contents: read

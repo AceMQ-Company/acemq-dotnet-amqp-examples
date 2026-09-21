@@ -62,7 +62,7 @@ jobs:
           # The broker's own word for it, from this boot. A TCP connect is not
           # enough: Docker publishes the port before RabbitMQ is listening, and
           # a connection then succeeds and is immediately reset.
-          started=$(date -u +%Y-%m-%dT%H:%M:%S)
+          started=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           for i in $(seq 1 60); do
             if docker logs --since "$started" broker 2>&1 | grep -q "Server startup complete"; then
               echo "the broker is up"

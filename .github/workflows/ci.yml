@@ -114,3 +114,66 @@ jobs:
       - name: What the broker said, if anything went wrong
         if: failure()
         run: docker logs broker
+
+  tracks-the-release:
+    name: the pin is the newest release
+    runs-on: ubuntu-latest
+    # A job of its own rather than another step above, deliberately. A stale pin
+    # and a broken example are different findings and both are worth having: the
+    # examples still build and still run whatever this job concludes, so a red X
+    # here reads as "the pinned version is old", never as "we have no idea
+    # whether any of this works".
+    #
+    # It inherits the workflow's triggers, so it runs on the Monday cron as well
+    # as on push. That is the run it exists for: a release moves underneath this
+    # repository without a commit landing here, and only something on a timer
+    # will ever notice.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The pinned library is the newest released one
+        # Hard failure rather than a warning, and the argument is worth writing
+        # down because the other choice is tempting.
+        #
+        # This repository exists to prove the current release works. Pinned to an
+        # older one it proves something about a version nobody installs any more,
+        # and it does that in a green build -- which is worse than no check at
+        # all, because a green build is read as an answer. Three of these
+        # examples repositories were once found sitting releases behind, all of
+        # them green the whole time.
+        #
+        # The cost of failing hard is real. A library release legitimately lands
+        # before the examples are updated, and during that window this job goes
+        # red on a repository nobody has broken. But that window is precisely the
+        # thing being measured, the fix is a one-line version bump, and a warning
+        # buried in a log is what let the drift go unnoticed for releases at a
+        # time in the first place.
+        #
+        # The tags come from the library repository directly rather than from a
+        # package feed: git ls-remote needs no token, which matters for a
+        # scheduled run, and the tag is what the release was cut from.
+        run: |
+          pinned=$(sed -n 's/.*<AceMqVersion>\(.*\)<\/AceMqVersion>.*/\1/p' Directory.Build.props | head -1)
+          newest=$(git ls-remote --tags https://github.com/AceMQ-Company/acemq-dotnet-amqp \
+                     | grep -v '\^{}' | sed 's#.*refs/tags/##' \
+                     | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sed 's/^v//' \
+                     | sort -V | tail -1)
+
+          # An empty answer means the listing failed or the tag naming changed,
+          # and comparing against nothing would pass silently forever.
+          if [ -z "$newest" ]; then
+            echo "::error::no release tags found on acemq-dotnet-amqp, so the pin could not be checked"
+            exit 1
+          fi
+          if [ -z "$pinned" ]; then
+            echo "::error::no <AceMqVersion> found in Directory.Build.props, so the pin could not be checked"
+            exit 1
+          fi
+
+          # One property covers AceMq.Amqp, AceMq.Amqp.RabbitMq, AceMq.Amqp.Crypto
+          # and AceMq.Amqp.Avro alike, which is why checking it once is enough.
+          if [ "$pinned" != "$newest" ]; then
+            echo "::error::Directory.Build.props pins AceMq.Amqp $pinned but the newest release is $newest. Edit <AceMqVersion> in Directory.Build.props and set it to $newest, then run the examples against it."
+            exit 1
+          fi
+          echo "pinned $pinned, which is the newest release"

@@ -1,4 +1,11 @@
-# A broker for the examples. Plain AMQP on 5672; the TLS example brings its own.
+# A broker for the examples. Plain AMQP on 5672, which is every example here.
+#
+# There is no TLS example in this repository yet, so there is no second broker
+# either. The Java, Python, Go and Ruby repositories each have one, and it is a
+# `broker-tls` service on a compose profile reading certificates the library
+# wrote — `AceMq.Amqp.DevCerts` writes them, so the piece that is missing is the
+# example, not the means. Adding it adds a service beside this one rather than
+# changing it.
 services:
   broker:
     image: rabbitmq:4-alpine

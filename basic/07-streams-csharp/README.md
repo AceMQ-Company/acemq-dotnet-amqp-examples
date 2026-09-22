@@ -95,12 +95,17 @@ Streams do require a prefetch: the broker refuses a stream consumer without one,
 because a stream would otherwise hand over its entire history as fast as the
 network allows. The library sets one, and `Prefetch(n)` changes it.
 
-## `MessageCountAsync` reports 0 for a stream
+## `MessageCountAsync` does not measure a stream
 
-Printed here rather than asserted, because it surprises people. The broker does
-not report a stream's length through `queue.declare`, so the count comes back
-zero however much is in the stream. Use the management API if the depth is what
-you need.
+Printed here rather than asserted, because it surprises people — and because
+what it prints is not stable. `queue.declare` is not how a stream's length is
+published, so the count that comes back is not the depth. It is usually 0, and
+on some runs it is a partial figure instead: twenty-four runs of this example
+against one broker gave 0 twenty-one times, 10 twice and 5 once, with the same
+eleven messages written every time.
+
+The reading to take from that is not "it returns 0" but "it returns nothing you
+can use". Use the management API if the depth is what you need.
 
 ## When not to use one
 

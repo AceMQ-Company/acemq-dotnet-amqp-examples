@@ -200,10 +200,12 @@ Module Program
                                 HandledCount(auditor) + HandledCount(live)
                 Console.WriteLine($"totals     11 written, {delivered} handled across four readers")
 
-                ' Worth knowing rather than worth asserting: the broker does not
-                ' report a stream's length through queue.declare, so
-                ' MessageCountAsync comes back 0 for a stream however much is in
-                ' it. Reach for the management API if the depth is what you need.
+                ' Worth knowing rather than worth asserting, and worth printing
+                ' rather than describing: queue.declare is not how a stream's
+                ' length is published, so this number is not the depth. It is
+                ' usually 0 and sometimes a partial figure -- the same eleven
+                ' messages have produced 0, 5 and 10 here on one broker. Reach
+                ' for the management API if the depth is what you need.
                 Console.WriteLine(
                     $"depth      MessageCountAsync says {Await mq.MessageCountAsync(OrderLog)}")
 

@@ -53,30 +53,49 @@ jobs:
             exit 1
           fi
 
-      - name: Start a broker
+      - name: Start the brokers
+        # Two of them, matching compose.yaml. advanced/03 raises a memory
+        # alarm, which is raised on the node rather than on the connection and
+        # would block every other example sharing that broker -- so it gets one
+        # of its own. Everything else uses the first.
         run: |
           docker run -d --name broker \
             -e HOME=/tmp \
             -p 5672:5672 \
             rabbitmq:4-alpine
+          docker run -d --name acemq-examples-broker-health \
+            -e HOME=/tmp \
+            -p 5673:5672 \
+            rabbitmq:4-alpine
+
           # The broker's own word for it, from this boot. A TCP connect is not
           # enough: Docker publishes the port before RabbitMQ is listening, and
           # a connection then succeeds and is immediately reset.
           started=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          for i in $(seq 1 60); do
-            if docker logs --since "$started" broker 2>&1 | grep -q "Server startup complete"; then
-              echo "the broker is up"
-              exit 0
+          for name in broker acemq-examples-broker-health; do
+            ready=""
+            for i in $(seq 1 60); do
+              if docker logs --since "$started" "$name" 2>&1 | grep -q "Server startup complete"; then
+                ready=yes
+                break
+              fi
+              sleep 3
+            done
+            if [ -z "$ready" ]; then
+              echo "::error::$name never became ready"
+              docker logs "$name"
+              exit 1
             fi
-            sleep 3
+            echo "$name is up"
           done
-          echo "::error::the broker never became ready"
-          docker logs broker
-          exit 1
 
       - name: Run every example
         env:
           ACEMQ_URL: amqp://guest:guest@localhost:5672/
+          # advanced/03 only. Deliberately a variable of its own: if it read
+          # ACEMQ_URL it would point a memory alarm at the shared broker.
+          ACEMQ_HEALTH_URL: amqp://guest:guest@localhost:5673/
+          ACEMQ_HEALTH_CONTAINER: acemq-examples-broker-health
         run: |
           failed=""
           for project in $(find basic intermediate advanced \
@@ -111,9 +130,14 @@ jobs:
             exit 1
           fi
 
-      - name: What the broker said, if anything went wrong
+      - name: What the brokers said, if anything went wrong
         if: failure()
-        run: docker logs broker
+        run: |
+          for name in broker acemq-examples-broker-health; do
+            echo "::group::$name"
+            docker logs "$name" || true
+            echo "::endgroup::"
+          done
 
   tracks-the-release:
     name: the pin is the newest release

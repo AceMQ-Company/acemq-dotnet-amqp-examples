@@ -1,11 +1,11 @@
-# A broker for the examples. Plain AMQP on 5672, which is every example here.
+# Two brokers, and the second exists because one example cannot share.
 #
-# There is no TLS example in this repository yet, so there is no second broker
-# either. The Java, Python, Go and Ruby repositories each have one, and it is a
-# `broker-tls` service on a compose profile reading certificates the library
-# wrote — `AceMq.Amqp.DevCerts` writes them, so the piece that is missing is the
-# example, not the means. Adding it adds a service beside this one rather than
-# changing it.
+#   broker         plain AMQP on 5672, which is every example but one
+#   broker-health  advanced/03, which raises a memory alarm on whatever it runs
+#                  against -- and an alarm is raised on the node, not on the
+#                  connection, so it would block every other example too
+#
+#   docker compose up -d
 services:
   broker:
     image: rabbitmq:4-alpine
@@ -18,3 +18,22 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+
+  # A broker nobody else touches, for advanced/03. That example drops the memory
+  # high watermark with rabbitmqctl until the broker really blocks, and it puts
+  # the watermark back afterwards -- but "puts it back afterwards" is not a
+  # guarantee worth resting thirty-six other examples on, and the window in
+  # between would block them regardless.
+  #
+  # Not behind a profile: it needs nothing generated first, and an example that
+  # fails until you read the compose file is an example nobody runs.
+  broker-health:
+    image: rabbitmq:4-alpine
+    # Pinned, because advanced/03 reaches the broker's own control tool with
+    # `docker exec <name> rabbitmqctl` -- nothing in AMQP can raise a memory
+    # alarm. Compose would otherwise name it after this directory.
+    container_name: acemq-examples-broker-health
+    environment:
+      HOME: /tmp
+    ports:
+      - "5673:5672"

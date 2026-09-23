@@ -45,16 +45,21 @@ services:
   # generator wrote. Behind a profile because it cannot start until they exist:
   #
   #   curl -O https://acemq.org/nuget/v3/flatcontainer/acemq.amqp.devcerts/0.7.2/acemq.amqp.devcerts.0.7.2.nupkg
-  #   dotnet tool install --global AceMq.Amqp.DevCerts --version 0.7.2 --add-source .
+  #   dotnet tool install --global AceMq.Amqp.DevCerts --version 0.7.2 --source .
   #   acemq-certs --out certs --broker localhost
   #   chmod 644 certs/server.key
   #   docker compose --profile tls up -d
   #
   # The nupkg is downloaded first because `dotnet tool install` cannot read the
-  # AceMQ feed directly -- see the README. The chmod is because the generator
-  # writes keys 0600, which is right for a key and wrong for a container running
-  # as another user; RabbitMQ reports an unreadable key as a listener that
-  # failed to start, which is a long way from what it is.
+  # AceMQ feed directly, and it is `--source` rather than `--add-source` because
+  # that one REPLACES the configured sources where the other adds to them --
+  # which would put this repository's own nuget.config back in scope and fail
+  # the same way. Both are explained in the example's README.
+  #
+  # The chmod is because the generator writes keys 0600, which is right for a
+  # key and wrong for a container running as another user; RabbitMQ reports an
+  # unreadable key as a listener that failed to start, which is a long way from
+  # what it is.
   broker-tls:
     image: rabbitmq:4-alpine
     profiles: [tls]

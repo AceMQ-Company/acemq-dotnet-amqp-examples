@@ -34,7 +34,7 @@ listener holding certificates generated on this machine:
 
 ```bash
 curl -O https://acemq.org/nuget/v3/flatcontainer/acemq.amqp.devcerts/0.7.2/acemq.amqp.devcerts.0.7.2.nupkg
-dotnet tool install --global AceMq.Amqp.DevCerts --version 0.7.2 --add-source .
+dotnet tool install --global AceMq.Amqp.DevCerts --version 0.7.2 --source .
 acemq-certs --out certs --broker localhost
 chmod 644 certs/server.key
 docker compose --profile tls up -d
@@ -43,14 +43,25 @@ dotnet run --project advanced/04-development-certificates-csharp
 
 Two of those lines are worth understanding rather than copying.
 
-**The `curl` is not optional.** `dotnet tool install --add-source
-https://acemq.org/nuget/index.json` does not work: the AceMQ feed is a static
-directory tree that offers only the flat container — enough for `dotnet restore`,
-which is why every other example needs nothing special, and not enough for the
-tool installer. It fails with a bare `Unhandled exception: Object reference not
-set to an instance of an object.` and no indication that the feed is the problem.
-Downloading the package and installing from the current directory is the way
-through.
+**The `curl`, and `--source` rather than `--add-source`.** `dotnet tool install`
+cannot read the AceMQ feed. The feed is a static directory tree offering only the
+flat container, which is everything `dotnet restore` needs — which is why every
+other example here works with no special handling — and not enough for the tool
+installer, which answers with a bare
+
+```
+Unhandled exception: Object reference not set to an instance of an object.
+```
+
+and no hint that the feed is the problem. So the package is downloaded and
+installed from the current directory instead.
+
+`--source` matters as much as the `curl`. It **replaces** the configured package
+sources; `--add-source` adds to them, and this repository's `nuget.config` puts
+the AceMQ feed back in scope — so `--add-source .` fails with the same
+`NullReferenceException` from inside the repository while working perfectly
+anywhere else. That difference is not in the flag's name and cost a CI run to
+find.
 
 **The `chmod`** is because the generator writes private keys `0600`, which is
 right for a key and wrong for a container that runs as another user. RabbitMQ

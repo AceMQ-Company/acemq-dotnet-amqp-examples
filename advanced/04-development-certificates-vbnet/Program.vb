@@ -19,7 +19,7 @@
 ' listener holding certificates generated on this machine:
 '
 '   curl -O https://acemq.org/nuget/v3/flatcontainer/acemq.amqp.devcerts/0.7.2/acemq.amqp.devcerts.0.7.2.nupkg
-'   dotnet tool install --global AceMq.Amqp.DevCerts --version 0.7.2 --add-source .
+'   dotnet tool install --global AceMq.Amqp.DevCerts --version 0.7.2 --source .
 '   acemq-certs --out certs --broker localhost
 '   chmod 644 certs/server.key
 '   docker compose --profile tls up -d

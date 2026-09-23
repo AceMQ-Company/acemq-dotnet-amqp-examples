@@ -177,6 +177,14 @@ jobs:
             echo "::error::expected at least two examples in each language"
             exit 1
           fi
+          # Every example exists in both languages -- both halves, or neither.
+          # The floor above catches a find that matched nothing; this catches
+          # the likelier accident, which is somebody adding an example in the
+          # language they were already writing in and stopping there.
+          if [ "$cs" -ne "$vb" ]; then
+            echo "::error::$cs C# examples and $vb VB.NET ones. Every example exists in both languages."
+            exit 1
+          fi
 
       - name: What the brokers said, if anything went wrong
         if: failure()

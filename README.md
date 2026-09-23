@@ -75,11 +75,24 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ dotnet run --project basic/01-publish
 |---|---|---|
 | Message bodies the broker cannot read, and a keyring that can rotate | [01](advanced/01-encrypting-payloads-csharp) | [01](advanced/01-encrypting-payloads-vbnet) |
 | A payload too large for a broker kept off it, and the boundary where that starts | [02](advanced/02-claim-check-csharp) | [02](advanced/02-claim-check-vbnet) |
+| A broker that has stopped accepting publishes, and why health calls that `Up` | [03](advanced/03-health-and-back-pressure-csharp) | [03](advanced/03-health-and-back-pressure-vbnet) |
+| TLS against a certificate the library refuses until you say the word | [04](advanced/04-development-certificates-csharp) | [04](advanced/04-development-certificates-vbnet) |
 
 From `intermediate/03` onwards each directory carries its own `README.md`, in
 both languages, explaining what the example proves and what it costs — and so
 does `basic/07`, because a stream has more ways to go quietly wrong than the rest
 of `basic` put together.
+
+**Two of them need a broker of their own**, and `docker compose up -d` starts the
+first of those for you:
+
+- `advanced/03` raises a **memory alarm**, which RabbitMQ raises on the node
+  rather than on the connection — so every publisher on that broker blocks, not
+  just the example's. It gets `broker-health` on 5673, and nothing else goes near
+  it.
+- `advanced/04` needs a **TLS listener** holding certificates generated on this
+  machine, so its broker is behind a compose profile and cannot start until they
+  exist. Its README has the four commands.
 
 More are being added. The [Java examples](https://github.com/AceMQ-Company/acemq-java-amqp-examples)
 are further along and cover the same library, so the shape of anything missing
@@ -126,9 +139,22 @@ than as a name clash. The encryption example calls it `ring`, the topology
 example calls its variable `wanted`, request/reply calls a `Requester` `asking`
 and an `Envelope` `stamp`, scheduling calls a `Scheduler` `later`, the claim
 check calls its codec `framing`, consumer groups call a batch `eightAtOnce`
-rather than `parallel`, and the pipeline example calls a `Pipeline(Of T)` `chain`
-— all for the same reason. The sort of thing that costs twenty minutes if nobody
-has written it down.
+rather than `parallel`, the health example calls a `Process` `runner`, and the
+pipeline example calls a `Pipeline(Of T)` `chain` — all for the same reason. The
+sort of thing that costs twenty minutes if nobody has written it down.
+
+It reaches further than types. A `String` named `bundle` turns a call to a
+`Bundle` function into an *indexing expression*, because the identifier is
+resolved before it is decided whether this is a call or an index — so the error
+is "Option Strict On disallows implicit conversions from String to Integer",
+naming neither the function nor the variable. The development-certificates
+example calls that variable `scratch`.
+
+**And the keyword list is longer than C#'s.** `Dim each = …` is rejected as
+"keyword is not valid as an identifier", reported several lines below the `Dim`,
+because of `For Each`; the health example uses `perCall`. `Event` cannot be a
+property name, so the message type in the development-certificates example has a
+`Detail` — and its C# twin uses `Detail` too, so the two publish the same shape.
 
 The same rule turns namespaces into collisions. `Imports AceMq.Amqp` brings
 `AceMq.Amqp.Avro` into scope as `Avro`, so `Avro.Schema` in the schema-evolution
@@ -144,9 +170,14 @@ they also run on a machine that only has a newer runtime.
 ## How these stay honest
 
 CI compiles and **runs every one of them, in both languages, against a real
-broker**, on every push and once a week. It fails if it finds fewer than two
-examples in either language, since a `find` that matched nothing would otherwise
-pass having run nothing at all.
+broker**, on every push and once a week. It generates development certificates
+and starts three brokers to do it, because two of the examples cannot share one.
+
+It fails if it finds fewer than two examples in either language, since a `find`
+that matched nothing would otherwise pass having run nothing at all — and it
+fails if the two counts differ, since every example here exists in both
+languages and the likelier accident is somebody adding one in the language they
+were already writing in.
 
 ## Licence
 

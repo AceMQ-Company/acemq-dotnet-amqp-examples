@@ -53,11 +53,39 @@ jobs:
             exit 1
           fi
 
+      - name: Generate development certificates
+        # advanced/04 needs a TLS listener, and a TLS listener needs
+        # certificates that exist before the broker starts.
+        #
+        # The nupkg is fetched by hand first because `dotnet tool install`
+        # cannot read the AceMQ feed: it is a static directory tree offering
+        # only the flat container, which is enough for restore and not enough
+        # for the tool installer -- which fails with a bare NullReferenceException
+        # rather than saying so. Downloading the package and installing from the
+        # current directory is the way through, and it is what the example's
+        # README tells a reader to do, so this step and that README cannot drift
+        # into disagreeing about it.
+        #
+        # The version comes from Directory.Build.props so the certificates are
+        # made by the same release the examples are pinned to.
+        run: |
+          version=$(sed -n 's/.*<AceMqVersion>\(.*\)<\/AceMqVersion>.*/\1/p' Directory.Build.props | head -1)
+          echo "generating certificates with AceMq.Amqp.DevCerts $version"
+          curl -sSfLO "https://acemq.org/nuget/v3/flatcontainer/acemq.amqp.devcerts/$version/acemq.amqp.devcerts.$version.nupkg"
+          dotnet tool install --global AceMq.Amqp.DevCerts --version "$version" --add-source .
+          "$HOME/.dotnet/tools/acemq-certs" --out certs --broker localhost
+          # The generator writes keys 0600, which is right for a key and wrong
+          # for a container running as another user. RabbitMQ reports an
+          # unreadable key as a listener that failed to start.
+          chmod 644 certs/server.key
+          rm -f "acemq.amqp.devcerts.$version.nupkg"
+
       - name: Start the brokers
-        # Two of them, matching compose.yaml. advanced/03 raises a memory
+        # Three of them, matching compose.yaml. advanced/03 raises a memory
         # alarm, which is raised on the node rather than on the connection and
         # would block every other example sharing that broker -- so it gets one
-        # of its own. Everything else uses the first.
+        # of its own. advanced/04 needs a TLS listener. Everything else uses the
+        # first.
         run: |
           docker run -d --name broker \
             -e HOME=/tmp \
@@ -67,12 +95,18 @@ jobs:
             -e HOME=/tmp \
             -p 5673:5672 \
             rabbitmq:4-alpine
+          docker run -d --name broker-tls \
+            -e HOME=/tmp \
+            -p 5671:5671 \
+            -v "$PWD/certs:/certs:ro" \
+            -v "$PWD/certs/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro" \
+            rabbitmq:4-alpine
 
           # The broker's own word for it, from this boot. A TCP connect is not
           # enough: Docker publishes the port before RabbitMQ is listening, and
           # a connection then succeeds and is immediately reset.
           started=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          for name in broker acemq-examples-broker-health; do
+          for name in broker acemq-examples-broker-health broker-tls; do
             ready=""
             for i in $(seq 1 60); do
               if docker logs --since "$started" "$name" 2>&1 | grep -q "Server startup complete"; then
@@ -89,6 +123,17 @@ jobs:
             echo "$name is up"
           done
 
+          # And for the TLS one, that the listener it exists for actually
+          # started. An unreadable key does not stop the node -- it starts
+          # perfectly, without the listener, and the first sign is a connection
+          # refused from an example that looks wrong.
+          if ! docker logs broker-tls 2>&1 | grep -q "started TLS (SSL) listener"; then
+            echo "::error::broker-tls came up without a TLS listener"
+            docker logs broker-tls
+            exit 1
+          fi
+          echo "broker-tls is listening for TLS"
+
       - name: Run every example
         env:
           ACEMQ_URL: amqp://guest:guest@localhost:5672/
@@ -96,6 +141,9 @@ jobs:
           # ACEMQ_URL it would point a memory alarm at the shared broker.
           ACEMQ_HEALTH_URL: amqp://guest:guest@localhost:5673/
           ACEMQ_HEALTH_CONTAINER: acemq-examples-broker-health
+          # advanced/04 only.
+          ACEMQ_TLS_URL: amqps://guest:guest@localhost:5671/
+          ACEMQ_CERTS: certs
         run: |
           failed=""
           for project in $(find basic intermediate advanced \
@@ -133,7 +181,7 @@ jobs:
       - name: What the brokers said, if anything went wrong
         if: failure()
         run: |
-          for name in broker acemq-examples-broker-health; do
+          for name in broker acemq-examples-broker-health broker-tls; do
             echo "::group::$name"
             docker logs "$name" || true
             echo "::endgroup::"

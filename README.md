@@ -76,6 +76,7 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ dotnet run --project basic/01-publish
 | Message bodies the broker cannot read, and a keyring that can rotate | [01](advanced/01-encrypting-payloads-csharp) | [01](advanced/01-encrypting-payloads-vbnet) |
 | A payload too large for a broker kept off it, and the boundary where that starts | [02](advanced/02-claim-check-csharp) | [02](advanced/02-claim-check-vbnet) |
 | A broker that has stopped accepting publishes, and why health calls that `Up` | [03](advanced/03-health-and-back-pressure-csharp) | [03](advanced/03-health-and-back-pressure-vbnet) |
+| A load that does not finish, printing one JSON reading per second for a fault drill to read | [05](advanced/05-a-standing-load-something-else-can-watch-csharp) | [05](advanced/05-a-standing-load-something-else-can-watch-vbnet) |
 | TLS against a certificate the library refuses until you say the word | [04](advanced/04-development-certificates-csharp) | [04](advanced/04-development-certificates-vbnet) |
 
 From `intermediate/03` onwards each directory carries its own `README.md`, in

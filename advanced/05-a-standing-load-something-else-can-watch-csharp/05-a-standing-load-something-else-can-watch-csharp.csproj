@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AceMq.Amqp" Version="$(AceMqVersion)" />
+    <PackageReference Include="AceMq.Amqp.RabbitMq" Version="$(AceMqVersion)" />
+  </ItemGroup>
+
+</Project>

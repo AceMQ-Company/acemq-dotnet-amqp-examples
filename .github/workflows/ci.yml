@@ -180,8 +180,13 @@ jobs:
           cs=$(find basic intermediate advanced -name '*.csproj' | wc -l | tr -d ' ')
           vb=$(find basic intermediate advanced -name '*.vbproj' | wc -l | tr -d ' ')
           echo "$cs C# examples, $vb VB.NET examples"
-          if [ "$cs" -lt 2 ] || [ "$vb" -lt 2 ]; then
-            echo "::error::expected at least two examples in each language"
+          # The floor tracks the actual count rather than sitting at two. It was two
+          # against twenty for a long time, which is a guard that cannot fail: deleting
+          # nine tenths of the examples would have passed it. Raise this deliberately
+          # when an example is added, the same way the Go, Python and Ruby floors are
+          # kept honest.
+          if [ "$cs" -lt 20 ] || [ "$vb" -lt 20 ]; then
+            echo "::error::found $cs C# and $vb VB.NET examples; expected at least 20 of each"
             exit 1
           fi
           # Every example exists in both languages -- both halves, or neither.

@@ -33,9 +33,15 @@ dotnet run --project advanced/05-a-standing-load-something-else-can-watch-vbnet 
     > readings.jsonl
 ```
 
-Environment: `ACEMQ_URL`, `ACEMQ_LOAD_RATE` (per second, default 200),
-`ACEMQ_LOAD_INTERVAL` (seconds between readings), `ACEMQ_EXAMPLE_SECONDS` (stop after
-this long; unset runs until interrupted, which is what a drill campaign wants).
+Environment: `ACEMQ_URL`, `ACEMQ_LOAD_RATE` (per second), `ACEMQ_LOAD_INTERVAL`
+(seconds between readings), and `ACEMQ_EXAMPLE_SECONDS`, which defaults to **60**.
+
+Set `ACEMQ_EXAMPLE_SECONDS=0` to run until interrupted — which is what a drill
+campaign wants, and what `chaos-drill.sh workload up` passes. The default is bounded
+rather than endless on purpose: CI runs every example in this repository with no
+arguments and waits for each to finish, so an endless one is not a failing example,
+it is a job that runs to the six-hour ceiling and is cancelled. That happened, in
+three repositories at once.
 
 ## What it prints
 

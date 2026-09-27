@@ -273,10 +273,30 @@ Public Module Program
         Return IntFromEnv("ACEMQ_LOAD_INTERVAL", 1)
     End Function
 
-    ' Bounded in CI, where every example is run with no arguments and nothing is
-    ' standing by to interrupt one.
+    ' How long to run when nobody said: a minute, not for ever.
+    '
+    ' That default is deliberate. CI runs every example in this repository with no
+    ' arguments and waits for each to finish, so an unbounded default is not a failing
+    ' example -- it is a job that runs to the six-hour ceiling and is then cancelled.
+    ' That happened, in three repositories at once, and cost about eighteen hours of
+    ' runner time before anybody looked.
+    '
+    ' So a forgotten setting gives a short run, and "until interrupted" has to be asked
+    ' for: ACEMQ_EXAMPLE_SECONDS=0, which is what a drill campaign passes.
+    Private Const DefaultRunForSeconds As Integer = 60
+
     Private Function RunForSeconds() As Integer
-        Return IntFromEnv("ACEMQ_EXAMPLE_SECONDS", 0)
+        Dim raw = Environment.GetEnvironmentVariable("ACEMQ_EXAMPLE_SECONDS")
+        If String.IsNullOrEmpty(raw) Then
+            Return DefaultRunForSeconds
+        End If
+
+        ' Zero is a real setting, and the only way to ask for an unbounded run.
+        Dim value As Integer
+        If Integer.TryParse(raw, value) Then
+            Return value
+        End If
+        Return DefaultRunForSeconds
     End Function
 
     Private Function IntFromEnv(name As String, fallback As Integer) As Integer

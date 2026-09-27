@@ -280,9 +280,28 @@ public static class Program
 
     private static double IntervalSeconds() => IntFromEnv("ACEMQ_LOAD_INTERVAL", 1);
 
-    // Bounded in CI, where every example is run with no arguments and nothing is
-    // standing by to interrupt one.
-    private static int RunForSeconds() => IntFromEnv("ACEMQ_EXAMPLE_SECONDS", 0);
+    // How long to run when nobody said: a minute, not for ever.
+    //
+    // That default is deliberate. CI runs every example in this repository with no
+    // arguments and waits for each to finish, so an unbounded default is not a failing
+    // example -- it is a job that runs to the six-hour ceiling and is then cancelled.
+    // That happened, in three repositories at once, and cost about eighteen hours of
+    // runner time before anybody looked.
+    //
+    // So a forgotten setting gives a short run, and "until interrupted" has to be asked
+    // for: ACEMQ_EXAMPLE_SECONDS=0, which is what a drill campaign passes.
+    private const int DefaultRunForSeconds = 60;
+
+    private static int RunForSeconds()
+    {
+        var raw = Environment.GetEnvironmentVariable("ACEMQ_EXAMPLE_SECONDS");
+        if (string.IsNullOrEmpty(raw))
+        {
+            return DefaultRunForSeconds;
+        }
+        // Zero is a real setting, and the only way to ask for an unbounded run.
+        return int.TryParse(raw, out var value) ? value : DefaultRunForSeconds;
+    }
 
     private static int IntFromEnv(string name, int fallback) =>
         int.TryParse(Environment.GetEnvironmentVariable(name), out var value) && value > 0

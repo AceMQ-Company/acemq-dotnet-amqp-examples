@@ -19,11 +19,14 @@
 '   dotnet run --project intermediate/10-graceful-shutdown-vbnet
 '
 ' Three shutdowns of the same consumer, each arriving while a handler is half way
-' through a one-second job:
+' through a one-second job with a backlog of orders queued behind it:
 '
 '   CloseAsync    drains first: the job finishes and its message is settled
 '   Dispose       does not drain: the job's message comes back
 '   out of time   a drain with too small a budget, and the answer it gives
+'
+' Every one of them closes in about a second, backlog and all, and the backlog is
+' still on the queue afterwards -- nothing lost, nothing dead-lettered.
 '
 ' Kubernetes sends SIGTERM and starts a clock. Whatever is still inside a handler
 ' when the connection goes away was never acknowledged, so the broker hands it to
@@ -90,12 +93,16 @@ Module Program
     Private Const AbandonedQueue As String = "dotnet-vbnet-shutdown-abandoned"
     Private Const OutOfTimeQueue As String = "dotnet-vbnet-shutdown-out-of-time"
 
-    ' One order per queue, and deliberately one. With a second message behind it,
-    ' the drain pauses consuming and the broker's next delivery waits at the
-    ' pause gate -- and in 0.7.5 closing then blocks for a further thirty seconds
-    ' while that delivery waits out its hold. The README has the numbers. One
-    ' order keeps this example about what a drain does rather than about that.
-    Private Const Orders As Integer = 1
+    ' A backlog, because a real queue has one. While the first job runs, the drain
+    ' pauses consuming; once that job is acknowledged the broker pushes the next
+    ' order, which stops at the pause gate. Closing hands it back with requeue, so
+    ' it is redelivered later rather than lost or dead-lettered.
+    Private Const Orders As Integer = 5
+
+    ' How long a close may take before this example calls it slow. A close with a
+    ' backlog should take about one job's length; five seconds is generous for
+    ' that and well inside Kubernetes' 30-second grace period.
+    Private ReadOnly Promptly As TimeSpan = TimeSpan.FromSeconds(5)
 
     ' Long enough that a message is genuinely still being handled when the
     ' shutdown arrives, short enough that the example does not drag.
@@ -149,17 +156,20 @@ Module Program
             closing.Dispose()
         End Try
         clock.Stop()
+        Dim drainedTook = clock.Elapsed
         Dim drainedHandled = first.Handled
         Dim drainedLeft = Await inspector.MessageCountAsync(DrainedQueue)
+        Dim drainedDead = Await inspector.MessageCountAsync(DrainedQueue & ".dlq")
         Console.WriteLine(
             $"CloseAsync   closed after {clock.ElapsedMilliseconds,4} ms, " &
-            $"handled {drainedHandled} first, {drainedLeft} left on the queue")
+            $"handled {drainedHandled} first, {drainedLeft} of {Orders} left, {drainedDead} dead-lettered")
 
-        ' 2. Dispose. It does not drain. Nor does it return at once: closing the
-        '    channel waits for the callback still running on it, so the job does
-        '    finish. But its acknowledgement never reaches the broker, and the
-        '    message goes back on the queue -- the side effect has happened, and
-        '    it will happen again for whoever takes the message next.
+        ' 2. Dispose. It does not drain. Nor does it return at once: on RabbitMQ
+        '    the channel closes only after the handler running on it has
+        '    returned, so the job does finish. But by then Dispose has closed the
+        '    channel, so the acknowledgement never reaches the broker and the
+        '    message is redelivered -- the side effect has happened, and it will
+        '    happen again for whoever takes it next.
         Dim second As New Worker()
         Dim disposing = Await Connect("abandoned")
         Try
@@ -171,11 +181,13 @@ Module Program
             disposing.Dispose()
         End Try
         clock.Stop()
+        Dim abandonedTook = clock.Elapsed
         Dim abandonedHandled = second.Handled
         Dim abandonedLeft = Await inspector.MessageCountAsync(AbandonedQueue)
+        Dim abandonedDead = Await inspector.MessageCountAsync(AbandonedQueue & ".dlq")
         Console.WriteLine(
             $"Dispose      closed after {clock.ElapsedMilliseconds,4} ms, " &
-            $"handled {abandonedHandled} first, {abandonedLeft} left on the queue")
+            $"handled {abandonedHandled} first, {abandonedLeft} of {Orders} left, {abandonedDead} dead-lettered")
 
         ' 3. out of time. The shape a service wants when it needs the answer
         '    rather than only the tidy-up: drain with a budget under the grace
@@ -184,6 +196,7 @@ Module Program
         Dim third As New Worker()
         Dim drained As Boolean
         Dim inFlight As Long
+        clock.Reset()
         Dim hurried = Await Connect("out-of-time")
         Try
             Await Fill(inspector, OutOfTimeQueue)
@@ -202,23 +215,41 @@ Module Program
             ' And then the clock runs out, which is what Dispose stands in for
             ' here -- not CloseAsync, which would drain again with the full
             ' twenty seconds, time a process past its grace period does not have.
+            clock.Start()
             hurried.Dispose()
+            clock.Stop()
         End Try
+        Dim outOfTimeTook = clock.Elapsed
         Dim outOfTimeLeft = Await inspector.MessageCountAsync(OutOfTimeQueue)
-        Console.WriteLine($"             {outOfTimeLeft} left on the queue")
+        Dim outOfTimeDead = Await inspector.MessageCountAsync(OutOfTimeQueue & ".dlq")
+        Console.WriteLine(
+            $"             closed after {clock.ElapsedMilliseconds,4} ms, " &
+            $"{outOfTimeLeft} of {Orders} left, {outOfTimeDead} dead-lettered")
 
+        Check(drainedTook < Promptly,
+              $"CloseAsync took {drainedTook.TotalMilliseconds:F0} ms with a backlog; it should " &
+              "take about one job")
         Check(drainedHandled = 1,
-              $"CloseAsync returned with {drainedHandled} jobs handled, so it did not wait " &
-              "for the one in hand")
-        Check(drainedLeft = 0,
-              $"{drainedLeft} left after a drained close; the finished job's message should be gone")
+              $"CloseAsync returned with {drainedHandled} jobs handled; it should wait for the " &
+              "one in hand and start no other")
+        Check(drainedLeft = Orders - 1,
+              $"{drainedLeft} left after a drained close; the finished job's message should be " &
+              "gone and the held one back on the queue")
+        Check(abandonedTook < Promptly,
+              $"Dispose took {abandonedTook.TotalMilliseconds:F0} ms with a backlog; it should " &
+              "take about one job")
         Check(abandonedLeft = Orders,
               $"{abandonedLeft} left after Dispose; the unacknowledged message should have come back")
         Check(Not drained AndAlso inFlight = 1,
               $"a 100 ms drain of a one-second job answered {drained} with {inFlight} in flight")
+        Check(outOfTimeTook < Promptly,
+              $"Dispose after the drain ran out took {outOfTimeTook.TotalMilliseconds:F0} ms")
         Check(outOfTimeLeft = Orders,
               $"{outOfTimeLeft} left after running out of time; the unfinished message should " &
               "have come back")
+        Check(drainedDead + abandonedDead + outOfTimeDead = 0,
+              $"{drainedDead + abandonedDead + outOfTimeDead} dead-lettered; a shutdown should " &
+              "requeue, never reject")
 
         ' What redelivery costs is nothing if the handler is idempotent, and
         ' everything if it charges a card. A graceful shutdown reduces

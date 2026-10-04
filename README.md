@@ -68,6 +68,8 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ dotnet run --project basic/01-publish
 | Eight consumers on one queue, and the setting that makes them behave like one | [06](intermediate/06-consumer-groups-csharp) | [06](intermediate/06-consumer-groups-vbnet) |
 | A field added to a schema, read by a consumer that has not heard of it | [07](intermediate/07-schema-evolution-csharp) | [07](intermediate/07-schema-evolution-vbnet) |
 | A message stuck three steps in, put back at step three rather than at step one | [08](intermediate/08-pipelines-csharp) | [08](intermediate/08-pipelines-vbnet) |
+| Four operations across two hops in one OpenTelemetry trace, and the same traffic scraped as Prometheus metrics | [09](intermediate/09-telemetry-csharp) | [09](intermediate/09-telemetry-vbnet) |
+| A shutdown that drains the handler in hand, one that abandons it, and a drain that runs out of time | [10](intermediate/10-graceful-shutdown-csharp) | [10](intermediate/10-graceful-shutdown-vbnet) |
 
 ### advanced
 
@@ -144,6 +146,18 @@ rather than `parallel`, the health example calls a `Process` `runner`, and the
 pipeline example calls a `Pipeline(Of T)` `chain` — all for the same reason. The
 sort of thing that costs twenty minutes if nobody has written it down.
 
+A local hides a module member of the same name, too, for the whole of its
+function — including the lines *above* its `Dim`, where the member can then not
+be used at all ("cannot be referred to before it is declared"). The
+graceful-shutdown example's queue constants are `DrainedQueue` and friends
+because the drain's answer below them is a local called `drained`.
+
+**And VB.NET cannot `Await` in a `Finally`.** Nor in a `Catch`. With no `await
+using` either, a draining close is `Await mq.CloseAsync()` as the last line of the
+`Try`, and the `Finally` calls `Dispose` — which does nothing after `CloseAsync`
+and still closes the connection if anything threw. The telemetry and
+graceful-shutdown examples are written that way.
+
 It reaches further than types. A `String` named `bundle` turns a call to a
 `Bundle` function into an *indexing expression*, because the identifier is
 resolved before it is decided whether this is a call or an index — so the error
@@ -174,8 +188,9 @@ CI compiles and **runs every one of them, in both languages, against a real
 broker**, on every push and once a week. It generates development certificates
 and starts three brokers to do it, because two of the examples cannot share one.
 
-It fails if it finds fewer than two examples in either language, since a `find`
-that matched nothing would otherwise pass having run nothing at all — and it
+It fails if it finds fewer than twenty-two examples in either language — the
+number there actually are, so deleting one is a red build rather than a quiet
+one, and a `find` that matched nothing cannot pass having run nothing at all — and it
 fails if the two counts differ, since every example here exists in both
 languages and the likelier accident is somebody adding one in the language they
 were already writing in.

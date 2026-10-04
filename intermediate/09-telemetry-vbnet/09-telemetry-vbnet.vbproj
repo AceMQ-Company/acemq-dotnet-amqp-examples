@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>AceMq.Examples</RootNamespace>
+    <!--
+      VB.NET defaults to Option Strict Off, which lets a mistyped call compile
+      and fail at run time. An example is copied, so it should not teach that.
+    -->
+    <OptionStrict>On</OptionStrict>
+    <OptionExplicit>On</OptionExplicit>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AceMq.Amqp" Version="$(AceMqVersion)" />
+    <PackageReference Include="AceMq.Amqp.RabbitMq" Version="$(AceMqVersion)" />
+    <PackageReference Include="AceMq.Amqp.Diagnostics" Version="$(AceMqVersion)" />
+    <!--
+      The application's own choice, not the library's. AceMq.Amqp records to the
+      runtime's ActivitySource and depends on no OpenTelemetry package at all, so
+      the SDK version here is whatever the application already uses.
+    -->
+    <PackageReference Include="OpenTelemetry" Version="1.19.1" />
+    <PackageReference Include="OpenTelemetry.Exporter.InMemory" Version="1.19.1" />
+  </ItemGroup>
+
+</Project>

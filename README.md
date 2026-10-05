@@ -8,7 +8,8 @@
 
 Runnable examples for [AceMQ for .NET](https://github.com/AceMQ-Company/acemq-dotnet-amqp).
 Each one is a single `Program` file: open a directory and the whole example is
-in front of you, with no shared helpers to trace.
+in front of you, with no shared helpers to trace. The one exception is
+[apps](#apps), where five services get a file each.
 
 They resolve the **released** packages from <https://acemq.org/nuget/>, so they
 use exactly what the documentation tells you to depend on — and an example that
@@ -80,6 +81,17 @@ ACEMQ_URL=amqps://guest:guest@broker:5671/ dotnet run --project basic/01-publish
 | A broker that has stopped accepting publishes, and why health calls that `Up` | [03](advanced/03-health-and-back-pressure-csharp) | [03](advanced/03-health-and-back-pressure-vbnet) |
 | A load that does not finish, printing one JSON reading per second for a fault drill to read | [05](advanced/05-a-standing-load-something-else-can-watch-csharp) | [05](advanced/05-a-standing-load-something-else-can-watch-vbnet) |
 | TLS against a certificate the library refuses until you say the word | [04](advanced/04-development-certificates-csharp) | [04](advanced/04-development-certificates-vbnet) |
+
+### apps
+
+Everything above shows one idea at a time. An app is several of them made to
+coexist, which is where libraries quietly diverge — so an app is a file per
+service rather than a single `Program`, and it checks its own claims like every
+example here.
+
+| | C# | VB.NET |
+|---|---|---|
+| Five services, one broker, no shared database: an outbox at the edge, an idempotent charge, a retry ladder and a timeline built from one correlation id — a port of the Java app | [01](apps/01-order-fulfilment-csharp) | [01](apps/01-order-fulfilment-vbnet) |
 
 From `intermediate/03` onwards each directory carries its own `README.md`, in
 both languages, explaining what the example proves and what it costs — and so
@@ -188,7 +200,7 @@ CI compiles and **runs every one of them, in both languages, against a real
 broker**, on every push and once a week. It generates development certificates
 and starts three brokers to do it, because two of the examples cannot share one.
 
-It fails if it finds fewer than twenty-two examples in either language — the
+It fails if it finds fewer than twenty-three examples in either language — the
 number there actually are, so deleting one is a red build rather than a quiet
 one, and a `find` that matched nothing cannot pass having run nothing at all — and it
 fails if the two counts differ, since every example here exists in both

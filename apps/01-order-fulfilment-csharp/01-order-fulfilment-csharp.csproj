@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AceMq.Amqp" Version="$(AceMqVersion)" />
+    <PackageReference Include="AceMq.Amqp.RabbitMq" Version="$(AceMqVersion)" />
+    <!--
+      The gateway's orders and outbox, and payments' idempotency claims. Two
+      databases, one per service, and each a file of its own; see FreshDatabase in Program.cs.
+    -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
+  </ItemGroup>
+
+</Project>

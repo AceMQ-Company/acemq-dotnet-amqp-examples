@@ -40,7 +40,7 @@ jobs:
       - name: Build every example
         run: |
           failed=""
-          for project in $(find basic intermediate advanced \
+          for project in $(find basic intermediate advanced apps \
                              \( -name '*.csproj' -o -name '*.vbproj' \) | sort); do
             echo "::group::build $project"
             if ! dotnet build "$project" --nologo; then
@@ -153,7 +153,7 @@ jobs:
           ACEMQ_CERTS: certs
         run: |
           failed=""
-          for project in $(find basic intermediate advanced \
+          for project in $(find basic intermediate advanced apps \
                              \( -name '*.csproj' -o -name '*.vbproj' \) | sort); do
             echo "::group::run $project"
             if ! dotnet run --project "$project" --no-build; then
@@ -177,16 +177,16 @@ jobs:
         # nothing at all, and a repository that claims VB.NET support should
         # fail when the VB examples stop being run.
         run: |
-          cs=$(find basic intermediate advanced -name '*.csproj' | wc -l | tr -d ' ')
-          vb=$(find basic intermediate advanced -name '*.vbproj' | wc -l | tr -d ' ')
+          cs=$(find basic intermediate advanced apps -name '*.csproj' | wc -l | tr -d ' ')
+          vb=$(find basic intermediate advanced apps -name '*.vbproj' | wc -l | tr -d ' ')
           echo "$cs C# examples, $vb VB.NET examples"
           # The floor tracks the actual count rather than sitting at two. It was two
           # against twenty for a long time, which is a guard that cannot fail: deleting
           # nine tenths of the examples would have passed it. Raise this deliberately
           # when an example is added, the same way the Go, Python and Ruby floors are
           # kept honest.
-          if [ "$cs" -lt 22 ] || [ "$vb" -lt 22 ]; then
-            echo "::error::found $cs C# and $vb VB.NET examples; expected at least 22 of each"
+          if [ "$cs" -lt 23 ] || [ "$vb" -lt 23 ]; then
+            echo "::error::found $cs C# and $vb VB.NET examples; expected at least 23 of each"
             exit 1
           fi
           # Every example exists in both languages -- both halves, or neither.

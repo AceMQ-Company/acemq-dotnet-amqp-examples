@@ -185,8 +185,8 @@ jobs:
           # nine tenths of the examples would have passed it. Raise this deliberately
           # when an example is added, the same way the Go, Python and Ruby floors are
           # kept honest.
-          if [ "$cs" -lt 23 ] || [ "$vb" -lt 23 ]; then
-            echo "::error::found $cs C# and $vb VB.NET examples; expected at least 23 of each"
+          if [ "$cs" -lt 25 ] || [ "$vb" -lt 25 ]; then
+            echo "::error::found $cs C# and $vb VB.NET examples; expected at least 25 of each"
             exit 1
           fi
           # Every example exists in both languages -- both halves, or neither.

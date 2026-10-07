@@ -9,7 +9,7 @@
 Runnable examples for [AceMQ for .NET](https://github.com/AceMQ-Company/acemq-dotnet-amqp).
 Each one is a single `Program` file: open a directory and the whole example is
 in front of you, with no shared helpers to trace. The one exception is
-[apps](#apps), where five services get a file each.
+[apps](#apps), where each service or module gets a file of its own.
 
 They resolve the **released** packages from <https://acemq.org/nuget/>, so they
 use exactly what the documentation tells you to depend on — and an example that
@@ -92,6 +92,8 @@ example here.
 | | C# | VB.NET |
 |---|---|---|
 | Five services, one broker, no shared database: an outbox at the edge, an idempotent charge, a retry ladder and a timeline built from one correlation id — a port of the Java app | [01](apps/01-order-fulfilment-csharp) | [01](apps/01-order-fulfilment-vbnet) |
+| A modular monolith: one deployable, six modules, one database, and modules that only ever talk by events — an outbox, a pipeline, a claim check, an idempotent charge, request/reply and an audit trail that must hold every event exactly once | [02](apps/02-policy-administration-csharp) | [02](apps/02-policy-administration-vbnet) |
+| An event-sourced ledger on a stream: the log is the system of record, balances are rebuilt from it on every start, and projections from offset zero must agree with the writer | [03](apps/03-ledger-csharp) | [03](apps/03-ledger-vbnet) |
 
 From `intermediate/03` onwards each directory carries its own `README.md`, in
 both languages, explaining what the example proves and what it costs — and so
@@ -200,7 +202,7 @@ CI compiles and **runs every one of them, in both languages, against a real
 broker**, on every push and once a week. It generates development certificates
 and starts three brokers to do it, because two of the examples cannot share one.
 
-It fails if it finds fewer than twenty-three examples in either language — the
+It fails if it finds fewer than twenty-five examples in either language — the
 number there actually are, so deleting one is a red build rather than a quiet
 one, and a `find` that matched nothing cannot pass having run nothing at all — and it
 fails if the two counts differ, since every example here exists in both

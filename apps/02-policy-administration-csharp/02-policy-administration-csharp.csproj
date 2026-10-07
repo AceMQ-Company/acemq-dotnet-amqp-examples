@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AceMq.Amqp" Version="$(AceMqVersion)" />
+    <PackageReference Include="AceMq.Amqp.RabbitMq" Version="$(AceMqVersion)" />
+    <!--
+      One database for the whole monolith: policies' applications, policies and
+      outbox, and billing's idempotency claims. See OneDatabase in Program.cs.
+    -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
+  </ItemGroup>
+
+</Project>

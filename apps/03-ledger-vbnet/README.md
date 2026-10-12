@@ -119,8 +119,8 @@ The scenario that threw still *held* — the copy arrived at the end of the stre
 five seconds later, and the late projection waited long enough to see it. Only
 the check of the whole log noticed that the system of record now said heidi was
 paid twice. Java's reader stops at the failing entry and moves nothing; the .NET
-reader does the same since the release after 0.7.9, and until then a projection
-handler that can throw is a ledger that can double-post.
+reader does the same since 0.7.10, which these examples now use; before it, a
+projection handler that can throw is a ledger that can double-post.
 
 ## Where it differs from the Java app, and why
 

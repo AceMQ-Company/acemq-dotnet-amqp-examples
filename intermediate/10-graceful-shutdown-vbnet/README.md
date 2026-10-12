@@ -14,8 +14,10 @@ the first of the three is spelled `await using`.
 - **`CloseAsync` drains.** Consuming is paused, the handler already running is
   given up to twenty seconds to finish, and its message is acknowledged before
   the connection closes.
-- **`Dispose` does not.** The job's acknowledgement never reaches the broker, so
-  the message comes back — the work has been done once and will be done again.
+- **`Dispose` does not drain, but it does wait — five seconds at most.** The job
+  in hand finishes inside that and its acknowledgement reaches the broker. A
+  handler still running after five seconds is abandoned: the connection closes,
+  its message comes back, and whatever it answers later is dropped.
 - **A drain tells you whether it finished.** `DrainConsumersAsync` returns
   `False` when the budget runs out, which is the number worth logging.
 - **A backlog does not slow any of them down, and is not lost.** Every close
@@ -35,20 +37,27 @@ It takes about three seconds, because the handler really does sleep for one.
 
 ```
 CloseAsync   closed after 1038 ms, handled 1 first, 4 of 5 left, 0 dead-lettered
-Dispose      closed after 1003 ms, handled 1 first, 5 of 5 left, 0 dead-lettered
+Dispose      closed after 1003 ms, handled 1 first, 4 of 5 left, 0 dead-lettered
 out of time  drained False, 1 still in flight, so the grace period was shorter than the job
-             closed after  895 ms, 5 of 5 left, 0 dead-lettered
+             closed after  895 ms, 4 of 5 left, 0 dead-lettered
 ```
 
-**The first two lines differ in one number, and it is the one that matters.**
-Both closes took about a second and both saw the job finish — `Dispose` does not
-return at once either: on RabbitMQ the client closes a channel only after the
-handlers running on it are done, so it waits for them. But by then it has
-closed the channel, so their acknowledgements never reach the broker. Only the
-drained close settled the message: 4 of 5 left. After `Dispose`, all 5 are back —
-the job's side effect has happened *and* its message is on the queue for
-whoever starts next. That is what a deployment's spike of duplicate work is
-made of.
+**The three lines end the same way, and since `AceMq.Amqp` 0.7.12 that is
+right.** Every close took about a second and every one saw the job finish, so
+every one settled its message: 4 of 5 left. `Dispose` does not drain — it starts no
+wait for the backlog and gives the job in hand no twenty seconds — but on
+RabbitMQ the client closes a connection only after the handlers running on it
+are done, so it waits for them, up to five seconds, with the channel still open.
+A one-second job finishes inside that and its acknowledgement arrives. (Before
+0.7.12 the channel was already closing, the acknowledgement was lost, and all 5
+were back.)
+
+The difference shows with a handler that outlives the five seconds — one that
+ignores its `CancellationToken`. `Dispose` abandons it: the connection and its
+socket close, the broker hands the message back at once, and the handler's late
+acknowledgement is dropped rather than sent. The side effect has happened *and*
+the message is on the queue for whoever starts next. That is what a deployment's
+spike of duplicate work is made of, and why the handler should pass the token on.
 
 ## Why VB.NET calls `CloseAsync`
 
@@ -81,7 +90,7 @@ still closes the connection if anything above it threw.
 | | What it does |
 |---|---|
 | `CloseAsync()` | Pauses consuming, waits up to `AceMqConnection.DefaultDrainTimeout` (20 s) for the handlers already running, then closes. |
-| `Dispose()` | Cancels the consumers and closes without draining. Returns once the handlers already running have returned, but closes the channel first, so their acknowledgements are lost and the broker redelivers those messages. |
+| `Dispose()` | Cancels the consumers and closes without draining. Waits up to five seconds for the handlers already running, whose acknowledgements still arrive; a handler running longer is abandoned, the connection closes anyway and the broker redelivers its message. |
 | `DrainConsumersAsync(timeout)` | Pauses and waits, and **returns whether everything finished**. Does not close. |
 
 Twenty seconds because the number it has to fit inside is usually Kubernetes'
@@ -146,9 +155,10 @@ has closed — not from the consumer's own idea of what it did. The example
 asserts that every close, backlog and all, took under five seconds; that
 `CloseAsync` returned only after the job in hand finished, started no other, and left
 four of five on the queue — the finished one gone, the held one back; that
-`Dispose` left all five; that the 100 ms drain of a one-second job answered `False`
-with one handler still in flight, and that its message came back too; and that
-nothing was dead-lettered.
+`Dispose` waited for that job too and left four of five, its acknowledgement
+delivered; that the 100 ms drain of a one-second job answered `False` with one
+handler still in flight, and that the close after it let that handler finish and
+settle, leaving four of five as well; and that nothing was dead-lettered.
 
 It does not assert that `Dispose` returns before the job finishes. It does not —
 see the first section — and an example that asserted what the documentation

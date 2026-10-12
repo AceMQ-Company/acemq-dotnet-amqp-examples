@@ -22,7 +22,7 @@
 ' through a one-second job with a backlog of orders queued behind it:
 '
 '   CloseAsync    drains first: the job finishes and its message is settled
-'   Dispose       does not drain: the job's message comes back
+'   Dispose       does not drain, but waits up to five seconds for the job
 '   out of time   a drain with too small a budget, and the answer it gives
 '
 ' Every one of them closes in about a second, backlog and all, and the backlog is
@@ -165,11 +165,13 @@ Module Program
             $"handled {drainedHandled} first, {drainedLeft} of {Orders} left, {drainedDead} dead-lettered")
 
         ' 2. Dispose. It does not drain. Nor does it return at once: on RabbitMQ
-        '    the channel closes only after the handler running on it has
-        '    returned, so the job does finish. But by then Dispose has closed the
-        '    channel, so the acknowledgement never reaches the broker and the
-        '    message is redelivered -- the side effect has happened, and it will
-        '    happen again for whoever takes it next.
+        '    the connection closes only after the handlers running on it have
+        '    returned, so Dispose waits for them -- up to five seconds, with the
+        '    channel still open. The one-second job finishes and its
+        '    acknowledgement reaches the broker. A handler still running after
+        '    five seconds (one that ignores its cancellation) would be abandoned
+        '    instead: the connection closes, its message comes back, and its
+        '    late acknowledgement is dropped.
         Dim second As New Worker()
         Dim disposing = Await Connect("abandoned")
         Try
@@ -238,15 +240,16 @@ Module Program
         Check(abandonedTook < Promptly,
               $"Dispose took {abandonedTook.TotalMilliseconds:F0} ms with a backlog; it should " &
               "take about one job")
-        Check(abandonedLeft = Orders,
-              $"{abandonedLeft} left after Dispose; the unacknowledged message should have come back")
+        Check(abandonedLeft = Orders - 1,
+              $"{abandonedLeft} left after Dispose; the job finished inside Dispose's five seconds, so its " &
+              "message should be settled and the held one back")
         Check(Not drained AndAlso inFlight = 1,
               $"a 100 ms drain of a one-second job answered {drained} with {inFlight} in flight")
         Check(outOfTimeTook < Promptly,
               $"Dispose after the drain ran out took {outOfTimeTook.TotalMilliseconds:F0} ms")
-        Check(outOfTimeLeft = Orders,
-              $"{outOfTimeLeft} left after running out of time; the unfinished message should " &
-              "have come back")
+        Check(outOfTimeLeft = Orders - 1,
+              $"{outOfTimeLeft} left after running out of time; the job finished inside Dispose's five " &
+              "seconds, so its message should be settled and the held one back")
         Check(drainedDead + abandonedDead + outOfTimeDead = 0,
               $"{drainedDead + abandonedDead + outOfTimeDead} dead-lettered; a shutdown should " &
               "requeue, never reject")

@@ -78,6 +78,13 @@ Public NotInheritable Class ClaimsModule
             Throw New InvalidOperationException(
                 $"could not establish whether {policyId} is in force, so claim {claimId} " &
                 "was neither settled nor rejected; it must be retried", e)
+        Catch e As ResponderFailedException
+            ' Policies answered, and the answer was that it could not look. That is
+            ' not a "no" either: since AceMq.Amqp 0.7.13 a failing responder says so
+            ' at once instead of letting the request time out.
+            Throw New InvalidOperationException(
+                $"policies could not say whether {policyId} is in force ({e.Failure}), so claim " &
+                $"{claimId} was neither settled nor rejected; it must be retried", e)
         End Try
 
         If Not status.InForce Then

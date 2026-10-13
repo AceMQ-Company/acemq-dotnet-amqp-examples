@@ -81,6 +81,15 @@ public sealed class ClaimsModule
                 $"could not establish whether {policyId} is in force, so claim {claimId} " +
                 "was neither settled nor rejected; it must be retried", e);
         }
+        catch (ResponderFailedException e)
+        {
+            // Policies answered, and the answer was that it could not look. That is
+            // not a "no" either: since AceMq.Amqp 0.7.13 a failing responder says so
+            // at once instead of letting the request time out.
+            throw new InvalidOperationException(
+                $"policies could not say whether {policyId} is in force ({e.Failure}), so claim " +
+                $"{claimId} was neither settled nor rejected; it must be retried", e);
+        }
 
         if (!status.InForce)
         {

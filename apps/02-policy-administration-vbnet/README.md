@@ -79,6 +79,11 @@ When the timeout expires the claim is **neither settled nor rejected**. A lookup
 that did not answer is not a "no", and treating it as one would refuse valid
 claims whenever the application was busy.
 
+The same holds when policies answers that it could not look. Since `AceMq.Amqp`
+0.7.13 a lookup handler that throws sends its failure back in the `acemq-error`
+header and the request raises `ResponderFailedException` at once, instead of
+waiting out the timeout; claims treats it exactly as it treats the timeout.
+
 ## Running it
 
 ```bash

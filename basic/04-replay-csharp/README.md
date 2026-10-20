@@ -43,11 +43,11 @@ replayed 2 message(s) for acme
 two acme invoices handled by the fixed consumer, and globex's still on the
 dead-letter queue for whenever its fix ships.
 
-**The last line can read 0.** It is a count of the queue read straight after the
-replay, and the message the filter passed over is handed back to the queue
-asynchronously. Four runs of this example against one broker printed 1 twice
-and 0 twice; the VB.NET twin, which closes the fixed consumer before it counts,
-printed 1 every time. A queue count is a snapshot, not a settled total.
+**The last line reads 1 every time.** It is a count of the queue read straight
+after the replay. Before AceMq.Amqp 0.7.14 it could read 0, because the message
+the filter passed over was handed back to the queue asynchronously and the count
+could beat it there. Since 0.7.14 `ReplayAsync` returns only once every
+passed-over message is back on the queue.
 
 ## Stop the broken consumer first
 

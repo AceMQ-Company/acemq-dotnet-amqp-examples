@@ -107,6 +107,17 @@ public static class Program
 
         await all.Task.WaitAsync(token);
 
+        // The scheduler counts a delivery when the broker confirms it, and the
+        // broker can hand the message to the consumer above before that confirm
+        // gets back. So the third arrival can come a moment before the third
+        // count; nothing is lost, every message has already arrived, so give the
+        // count a moment to catch up.
+        var counted = DateTime.UtcNow.AddSeconds(5);
+        while (scheduler.Delivered < 3 && DateTime.UtcNow < counted)
+        {
+            await Task.Delay(10, token);
+        }
+
         Console.WriteLine(
             $"scheduled {scheduler.Scheduled}, delivered {scheduler.Delivered}, " +
             $"hops {scheduler.Hops}");

@@ -130,6 +130,17 @@ Module Program
 
                         Await all.Task.WaitAsync(token)
 
+                        ' The scheduler counts a delivery when the broker confirms
+                        ' it, and the broker can hand the message to the consumer
+                        ' above before that confirm gets back. So the third arrival
+                        ' can come a moment before the third count; nothing is lost,
+                        ' every message has already arrived, so give the count a
+                        ' moment to catch up.
+                        Dim counted = DateTime.UtcNow.AddSeconds(5)
+                        While later.Delivered < 3 AndAlso DateTime.UtcNow < counted
+                            Await Task.Delay(10, token)
+                        End While
+
                         Console.WriteLine(
                             $"scheduled {later.Scheduled}, delivered {later.Delivered}, " &
                             $"hops {later.Hops}")
